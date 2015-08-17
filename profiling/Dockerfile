@@ -79,13 +79,13 @@ RUN pip install s3cmd --user
 
 # Load the files for the mirbase
 RUN service mysql start \
-&& mysql -e "create database mirbase" \
+&& mysql -e "create database mirna_20" \
 && mysql mirbase -e "source tables.sql" \
-&& mysql mirbase --local-infile=1 -e "load data local infile 'mirna.txt' into table mirna" \
-&& mysql mirbase --local-infile=1 -e "load data local infile 'mirna_species.txt' into table mirna_species" \
-&& mysql mirbase --local-infile=1 -e "load data local infile 'mirna_chromosome_build.txt' into table mirna_chromosome_build" \
-&& mysql mirbase --local-infile=1 -e "load data local infile 'mirna_mature.txt' into table mirna_mature" \
-&& mysql mirbase --local-infile=1 -e "load data local infile 'mirna_pre_mature.txt' into table mirna_pre_mature"
+&& mysql mirna_20 --local-infile=1 -e "load data local infile 'mirna.txt' into table mirna" \
+&& mysql mirna_20 --local-infile=1 -e "load data local infile 'mirna_species.txt' into table mirna_species" \
+&& mysql mirna_20 --local-infile=1 -e "load data local infile 'mirna_chromosome_build.txt' into table mirna_chromosome_build" \
+&& mysql mirna_20 --local-infile=1 -e "load data local infile 'mirna_mature.txt' into table mirna_mature" \
+&& mysql mirna_20 --local-infile=1 -e "load data local infile 'mirna_pre_mature.txt' into table mirna_pre_mature"
 
 # Delete the table files
 RUN rm *.txt *.sql
