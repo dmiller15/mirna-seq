@@ -80,7 +80,7 @@ RUN pip install s3cmd --user
 # Load the files for the mirbase
 RUN service mysql start \
 && mysql -e "create database mirna_20" \
-&& mysql mirbase -e "source tables.sql" \
+&& mysql mirna_20 -e "source tables.sql" \
 && mysql mirna_20 --local-infile=1 -e "load data local infile 'mirna.txt' into table mirna" \
 && mysql mirna_20 --local-infile=1 -e "load data local infile 'mirna_species.txt' into table mirna_species" \
 && mysql mirna_20 --local-infile=1 -e "load data local infile 'mirna_chromosome_build.txt' into table mirna_chromosome_build" \
