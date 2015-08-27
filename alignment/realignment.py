@@ -7,6 +7,8 @@ import sys
 
 #import setupLog
 import bam_util
+import picard_bam_sort
+
 
 def is_dir(d):
     if os.path.isdir(d):
@@ -59,10 +61,20 @@ def main():
 
     top_dir = os.path.dirname(preharmonized_bam_path)
     fastq_dir = os.path.join(top_dir, 'fastq')
+    fastq_name = os.listdir(fastq_dir)[0]
+    #for filename in os.listdir(fastq_dir):
+    #    output = bam_util.new_bwa_aln_single(uuid, top_dir, fastq_dir, filename, top_dir, reference_fasta_path, logger)
 
-    for filename in os.listdir(fastq_dir):
-        output = bam_util.new_bwa_aln_single(uuid, top_dir, fastq_dir, filename, top_dir, reference_fasta_path, logger)
+    # harmonize
+    harmonized_bam_path = bam_util.new_bwa_aln_single(uuid, top_dir, fastq_dir, fastq_name, top_dir, reference_fasta_path, logger)
 
+    be_lenient = False
+    if pipe_util.is_aln_bam(harmonized_bam_path, logger):
+        be_lenient = True
+
+    harmonized_sorted_bam_path = picard_bam_sort.bam_sort(uuid, preharmonized_bam_path, harmonized_bam_path, reference_fasta_path, logger, be_lenient)
+
+    # harmonized_bam_md_path = picard_bam_markduplicates.bam_markduplicates(uuid, harmonized_sorted_bam_path, fastq_dir, logger, be_lenient)
 
 if __name__ == '__main__':
     main()
