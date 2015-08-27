@@ -3,62 +3,84 @@ MAINTAINER Daniel Miller <dmiller15@uchicago.edu>
 
 USER root
 ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get dist-upgrade -y --force-yes
 RUN apt-get update && apt-get install -y --force-yes \
-    curl \
-    g++ \
-    make \
-    python \
-    libboost-dev \
-    libboost-thread-dev \
-    libboost-system-dev \
-    zlib1g-dev \
-    ncurses-dev \
-    unzip \
-    gzip \
-    bzip2 \
-    libxml2-dev \
-    libxslt-dev \
-    python-pip \
-    python-dev \
+    ant \
+    cmake \
+    default-jdk \
+    gcc \
     git \
+    libpq-dev \
+    openjdk-7-jre-headless \
+    poppler-utils \
+    postgresql-client \
+    python-pip \
+    python-virtualenv \
+    python3-dev \
+    r-base \
     s3cmd \
     time \
-    wget \
-    samtools \
-    python-virtualenv \
-    default-jre \
-    default-jdk
+    wget
 
 RUN adduser --disabled-password --gecos '' ubuntu && adduser ubuntu sudo && echo "ubuntu    ALL=(ALL)   NOPASSWD:ALL" >> /etc/sudoers.d/ubuntu
 
 ENV HOME /home/ubuntu
 
 USER ubuntu
-RUN mkdir ${HOME}/bin
-WORKDIR ${HOME}/bin
+RUN mkdir ${HOME}/tools
+WORKDIR ${HOME}/tools
 
-# Download BWA
-RUN wget https://github.com/lh3/bwa/archive/0.7.12.tar.gz && tar xvzf *.tar.gz
+# Get samtools, picard tools, bwa, fastQC, timmomatic, sambamba, bamtools
+RUN wget https://github.com/samtools/samtools/releases/download/1.2/samtools-1.2.tar.bz2 \
+    && wget https://github.com/broadinstitute/picard/releases/download/1.138/picard-tools-1.138.zip \
+    && git clone https://github.com/broadinstitute/picard.git \
+    && mv ${HOME}/tools/picard/src ${HOME}/ \
+    && wget http://downloads.sourceforge.net/project/bio-bwa/bwakit/bwakit-0.7.12_x64-linux.tar.bz2 \
+    && wget https://github.com/gt1/biobambam2/releases/download/2.0.14-release-20150809134108/biobambam2-2.0.14-release-20150809134108-x86_64-etch-linux-gnu.tar.gz \
+    && wget http://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.11.3.zip \
+    && wget https://github.com/pezmaster31/bamtools/archive/v2.4.0.tar.gz \
+    && wget http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-Src-0.33.zip \
+    && wget https://github.com/lomereiter/sambamba/releases/download/v0.5.8/sambamba_v0.5.8_linux.tar.bz2 \
+    && tar xf samtools-1.2.tar.bz2 \
+    && unzip picard-tools-1.138.zip \
+    && tar xf bwakit-0.7.12_x64-linux.tar.bz2 \
+    && tar xf biobambam2-2.0.14-release-20150809134108-x86_64-etch-linux-gnu.tar.gz \
+    && unzip fastqc_v0.11.3.zip \
+    && tar xf v2.4.0.tar.gz \
+    && unzip Trimmomatic-Src-0.33.zip \
+    && tar xf sambamba_v0.5.8_linux.tar.bz2 \
+    && mv samtools-1.2 samtools \
+    && mv biobambam2-2.0.14-release-20150809134108-x86_64-etch-linux-gnu biobambam \
+    && mv picard-tools-1.138 picard-tools \
+    && mv bamtools-2.4.0 bamtools \
+    && mv trimmomatic-0.33 trimmomatic \
+    && mv sambamba_v0.5.8 sambamba \
+    && chmod +x FastQC/fastqc \
+    && chmod +x sambamba \
+    && rm *.gz *.bz2 *.zip 
 
-# Get and install genetorrent
-RUN wget https://cghub.ucsc.edu/software/downloads/GeneTorrent/3.8.7/genetorrent-common_3.8.7-ubuntu2.207-14.04_amd64.deb \
-&& wget https://cghub.ucsc.edu/software/downloads/GeneTorrent/3.8.7/genetorrent-download_3.8.7-ubuntu2.207-14.04_amd64.deb
-
-# Remove compressed files
-RUN rm *.gz
-
-WORKDIR ${HOME}/bin/bwa-0.7.12
-
+WORKDIR ${HOME}/tools/samtools/
 RUN make
+WORKDIR ${HOME}/tools/bamtools/
+RUN mkdir build
+WORKDIR ${HOME}/tools/bamtools/build/
+RUN cmake ..
+RUN make
+WORKDIR ${HOME}/tools/trimmomatic/
+RUN ant
+RUN mv ${HOME}/tools/trimmomatic/dist/jar/trimmomatic-0.33.jar ${HOME}/tools/trimmomatic/dist/jar/trimmomatic.jar
+WORKDIR ${HOME}
 
-ENV PATH ${PATH}:${HOME}/bin/bwa-0.7.12
-
-USER root
-RUN dpkg -i --force-depends ${HOME}/bin/genetorrent-*.deb \
-    && apt-get update \
-    && apt-get -f install -y
+RUN pip install --user virtualenvwrapper \
+    && /bin/bash -c "source ${HOME}/.local/bin/virtualenvwrapper.sh \
+    && mkvirtualenv --python=/usr/bin/python3 p3 \
+    && pip install ipython numpy pandas psycopg2 pysam sqlalchemy \
+    && echo source ${HOME}/.local/bin/virtualenvwrapper.sh >> ${HOME}/.bashrc \
+    && echo source ${HOME}/.virtualenvs/p3/bin/activate >> ${HOME}/.bashrc"
 
 RUN pip install s3cmd --user
 
 ENV mirna_aligner 0.01
-WORKDIR ${HOME}/bin
+
+RUN git clone https://github.com/dmiller15/mirna-seq.git
+
