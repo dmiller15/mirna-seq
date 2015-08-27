@@ -55,3 +55,16 @@ def do_shell_command(cmd, logger, stdout=subprocess.STDOUT, stderr=subprocess.PI
         sys.exit('failed cmd: %s' % str(timecmd))
     logger.info('completed cmd: %s' % str(timecmd))
     return output
+
+
+def is_aln_bam(bam_path, logger):
+    bwa_type = os.path.basename(os.path.dirname(bam_path))
+    bam_dirs = bam_path.split('/')
+    for bam_dir in bam_dirs:
+        if bam_dir.startswith('bwa'):
+            if bam_dir.startswith('bwa_aln'):
+                return True
+            else:
+                return False
+    logger.debug('no `bwa` in path')
+    sys.exit(1)
