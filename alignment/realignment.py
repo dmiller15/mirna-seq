@@ -8,6 +8,7 @@ import sys
 #import setupLog
 import bam_util
 import picard_bam_sort
+import bam_validate
 
 
 def is_dir(d):
@@ -57,6 +58,8 @@ def main():
     logger.info('hostname=%s' % hostname)
     logger.info('preharmonized_bam_path=%s' % preharmonized_bam_path)
 
+    bam_validate.bam_validate(uuid, preharmonized_bam_path, logger)
+    
     bam_util.new_bam_to_fastq(uuid, preharmonized_bam_path, logger)
 
     top_dir = os.path.dirname(preharmonized_bam_path)
@@ -74,7 +77,11 @@ def main():
 
     harmonized_sorted_bam_path = picard_bam_sort.bam_sort(uuid, preharmonized_bam_path, harmonized_bam_path, reference_fasta_path, logger, be_lenient)
 
+    bam_validate.bam_validate(uuid, harmonized_sorted_bam_path, logger)
+
     # harmonized_bam_md_path = picard_bam_markduplicates.bam_markduplicates(uuid, harmonized_sorted_bam_path, fastq_dir, logger, be_lenient)
+
+    
 
 if __name__ == '__main__':
     main()
