@@ -4,9 +4,10 @@ import sys
 import pipe_util
 
 def bam_sort(uuid, preharmonized_bam_path, harmonized_bam_path, reference_fasta_path, logger, be_lenient):
-    bam_name = os.path.basename(harmonized_path_path)
+    input_bam = harmonized_bam_path
+    bam_name = os.path.basename(harmonized_bam_path)
     bam_base, bam_ext = os.path.splitext(bam_name)
-    input_dir = os.path.dirname(harmonized_path_path)
+    input_dir = os.path.dirname(harmonized_bam_path)
     outdir_path = os.path.join(input_dir, 'sorted')
     outbam_path = os.path.join(outdir_path, bam_name)
     tmpfile = os.path.join(outdir_path, 'tmpfile_' + bam_name)
