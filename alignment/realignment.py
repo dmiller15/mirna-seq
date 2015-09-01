@@ -9,6 +9,7 @@ import sys
 import bam_util
 import picard_bam_sort
 import bam_validate
+import pipe_util
 
 
 def is_dir(d):
