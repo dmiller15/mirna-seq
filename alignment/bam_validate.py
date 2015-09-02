@@ -109,7 +109,7 @@ def bam_validate(uuid, bam_path, logger):
     mo = int((2 ** 32) / 2) - 1
 
     cmd = ['java', '-d64', '-jar', os.path.join(home_dir, 'tools/picard-tools/picard.jar'), 'VallidateSamFile', 'MO=' + str(mo)]
-    output = pipe.util.docommand(cmd, logger, allow_fail=True)
+    output = pipe_util.do_command(cmd, logger, allow_fail=True)
     logger.info('completed running step validate of: %s' % bam_path)
         
                                                     
