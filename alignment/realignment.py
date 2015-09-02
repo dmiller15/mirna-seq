@@ -4,11 +4,11 @@ import argparse
 import logging
 import os
 import sys
-
-#import setupLog
+#
 import bam_util
 import picard_bam_sort
 import bam_validate
+import fastq_validate
 import pipe_util
 
 
@@ -66,13 +66,13 @@ def main():
     top_dir = os.path.dirname(preharmonized_bam_path)
     fastq_dir = os.path.join(top_dir, 'fastq')
     fastq_name = os.listdir(fastq_dir)[0]
-    #for filename in os.listdir(fastq_dir):
-    #    output = bam_util.new_bwa_aln_single(uuid, top_dir, fastq_dir, filename, top_dir, reference_fasta_path, logger)
+    fastq_path = os.path.join(fastq_dir, fastq_name)
 
-    # harmonize
-    harmonized_bam_path = bam_util.new_bwa_aln_single(uuid, top_dir, fastq_dir, fastq_name, top_dir, reference_fasta_path, logger)
+    fastq_validate.fastq_validate(uuid, fastq_path, logger)
 
+    # Harmonization
     be_lenient = False
+    harmonized_bam_path = bam_util.new_bwa_aln_single(uuid, top_dir, fastq_dir, fastq_name, top_dir, reference_fasta_path, logger)                                 
     if pipe_util.is_aln_bam(harmonized_bam_path, logger):
         be_lenient = True
 
@@ -80,9 +80,6 @@ def main():
 
     bam_validate.bam_validate(uuid, harmonized_sorted_bam_path, logger)
 
-    # harmonized_bam_md_path = picard_bam_markduplicates.bam_markduplicates(uuid, harmonized_sorted_bam_path, fastq_dir, logger, be_lenient)
-
-    
 
 if __name__ == '__main__':
     main()
