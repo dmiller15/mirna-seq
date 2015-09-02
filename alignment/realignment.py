@@ -71,8 +71,9 @@ def main():
     fastq_validate.fastq_validate(uuid, fastq_path, logger)
 
     # Harmonization
-    be_lenient = False
-    harmonized_bam_path = bam_util.new_bwa_aln_single(uuid, top_dir, fastq_dir, fastq_name, top_dir, reference_fasta_path, logger)                                 
+    harmonized_bam_path = bam_util.new_bwa_aln_single(uuid, top_dir, fastq_dir, fastq_name, top_dir, reference_fasta_path, logger)
+    
+    be_lenient = False                              
     if pipe_util.is_aln_bam(harmonized_bam_path, logger):
         be_lenient = True
 

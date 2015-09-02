@@ -15,7 +15,7 @@ def do_fastqc(uuid, fastq_path, logger):
     fastq_base, fastq_ext = os.path.splitext(fastq_name)
     # already step
     logger.info('running step `fastqc`: %s' % fastq_path)
-    cmd = ['fastqc', '--extract', fastq_path]
+    cmd = ['/home/ubuntu/tools/FastQC/fastqc', '--extract', fastq_path]
     output = pipe_util.do_command(cmd, logger)
     # create already step
     return
