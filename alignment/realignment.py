@@ -4,6 +4,7 @@ import argparse
 import logging
 import os
 import sys
+import sqlalchemy
 #
 import bam_util
 import picard_bam_sort
@@ -19,6 +20,17 @@ def is_dir(d):
 
 def main():
     parser = argparse.ArgumentParser('miRNA harmonization')
+
+    # Logging flag
+    parser.add_argument('-d', '--debug',
+                        action = 'store_const',
+                        const = logging.DEBUG,
+                        dest = 'level',
+                        help = 'Enable debug logging.',
+    )
+    parser.set_defaults(level = logging.INFO)
+
+    # Required flags
     parser.add_argument('-r', '--reference_fasta_path',
                         required = False,
                         help = 'Reference fasta path.',
@@ -49,16 +61,20 @@ def main():
     logging.basicConfig(
         filename = os.path.join(log_dir, 'aln_' + uuid + '.log'),
         filemode = 'a',
-        level = logging.INFO,
+        level = args.level,
         format='%(asctime)s %(levelname)s %(message)s',
         datefmt='%Y-%m-%d_%H:%M:%S_%Z',
     )
-    logging.getLogger(uuid).setLevel(logging.INFO)
+    logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
     logger = logging.getLogger(__name__)
     hostname = os.uname()[1]
     logger.info('hostname=%s' % hostname)
     logger.info('preharmonized_bam_path=%s' % preharmonized_bam_path)
 
+    engine_path = 'sqlite:///' + os.path.join(log_dir, uuid + '_harmonize.db')
+    engine = sqlalchemy.create_engine(engine_path, isolation_level='SERIALIZABLE')
+
+    
     bam_validate.bam_validate(uuid, preharmonized_bam_path, logger)
     
     bam_util.new_bam_to_fastq(uuid, preharmonized_bam_path, logger)
