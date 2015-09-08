@@ -102,7 +102,7 @@ def store_validate_error(uuid, bam_path, validate_file, engine, logger):
         df = pd.DataFrame(store_dict)
         table_name = 'picard_ValidateSamFile'
         unique_key_dict = {'uuid': uuid, 'bam_path': bam_path, 'error': akey}
-        df_util.save_to_sqlalchemy(df, unique_key_dict, table_name, engine,, logger)
+        df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
     validation_type = 'WARNING'
     for akey in sorted(val_error_dict[validation_type].keys()):
         store_dict = dict()
@@ -115,7 +115,7 @@ def store_validate_error(uuid, bam_path, validate_file, engine, logger):
         df = pd.DataFrame(store_dict)
         table_name = 'picard_ValidateSamFile'
         unique_key_dict = {'uuid': uuid, 'bam_path': bam_path, 'error': akey}
-        df_util.save_to_sqlalchemy(df, unique_key_dict, table_name, engine,, logger)
+        df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
     validation_type = 'PASS'
     for akey in sorted(val_error_dict[validation_type].keys()):
         store_dict = dict()
@@ -139,7 +139,7 @@ def bam_validate(uuid, bam_path, engine, logger):
     home_dir = os.path.expanduser('~')
     mo = int((2 ** 32) / 2) - 1
 
-    cmd = ['java', '-d64', '-jar', os.path.join(home_dir, 'tools/picard-tools/picard.jar'), 'VallidateSamFile', 'MO=' + str(mo)]
+    cmd = ['java', '-d64', '-jar', os.path.join(home_dir, 'tools/picard-tools/picard.jar'), 'ValidateSamFile', 'MO=' + str(mo), 'INPUT=' + bam_path, 'OUTPUT=' + validate_file]
     output = pipe_util.do_command(cmd, logger, allow_fail=True)
     df = time_util.store_time(uuid, cmd, output, logger)
     df['bam_path'] = bam_path
@@ -151,7 +151,7 @@ def bam_validate(uuid, bam_path, engine, logger):
 
     # Already step left out
     logger.info('storing `picard validate` to db')
-    store_validation_error(uuid, bam_path, validate_file, engine, logger)
+    store_validate_error(uuid, bam_path, validate_file, engine, logger)
     # Create already step
     logger.info('completed storing `picard validate` to db')
         

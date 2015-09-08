@@ -89,7 +89,7 @@ def save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger):
         logger.info('table %s does not yet exist' % table_name)
         try:
             df.to_sql(table_name, engine, if_exists='fail')
-            logger.info('wrote sql to table: %s' table_name)
+            logger.info('wrote sql to table: %s' % table_name)
             #logger.info('writing df to json_path=%s' % json_path)
             #df_json = df.to_json(orient = 'index')
             #df_json = df_json.replace('null','"null"')

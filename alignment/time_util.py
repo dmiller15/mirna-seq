@@ -11,7 +11,7 @@ def store_time(uuid, cmd, output, logger):
     wall_clock = float()
     maximum_resident_set_size = int()
     exit_status = int()
-    for line in ouuuutput.decode().format().split('\n'):
+    for line in output.decode().format().split('\n'):
         line = line.strip()
         if line.startswith('User time (seconds):'):
             user_time = float(line.split(':')[1].strip())
