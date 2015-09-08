@@ -77,7 +77,7 @@ def main():
     
     bam_validate.bam_validate(uuid, preharmonized_bam_path, engine, logger)
     
-    bam_util.new_bam_to_fastq(uuid, preharmonized_bam_path, logger)
+    bam_util.bam_to_fastq(uuid, preharmonized_bam_path, engine, logger)
 
     top_dir = os.path.dirname(preharmonized_bam_path)
     fastq_dir = os.path.join(top_dir, 'fastq')
@@ -87,7 +87,7 @@ def main():
     fastq_validate.fastq_validate(uuid, fastq_path, logger)
 
     # Harmonization
-    harmonized_bam_path = bam_util.new_bwa_aln_single(uuid, top_dir, fastq_dir, fastq_name, top_dir, reference_fasta_path, logger)
+    harmonized_bam_path = bam_util.bwa_aln_single(uuid, top_dir, fastq_dir, fastq_name, top_dir, reference_fasta_path, engine, logger)
     
     be_lenient = False                              
     if pipe_util.is_aln_bam(harmonized_bam_path, logger):
