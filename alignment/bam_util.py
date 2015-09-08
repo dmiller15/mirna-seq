@@ -49,7 +49,7 @@ def bwa_aln_single(uuid, bam_path, fastq_dir, read1, realn_dir, reference_fasta_
     aln_cmd = ['bwa', 'aln', reference_fasta_path, f1, ' > ', outsai_path]
     shell_aln_cmd = ' '.join(aln_cmd)
     aln_output = pipe_util.do_shell_command(shell_aln_cmd, logger)
-    df = time_util.store_time(uuid, shell_aln_cmd, logger)
+    df = time_util.store_time(uuid, shell_aln_cmd, aln_output, logger)
     df['sai_path'] = outsai_path
     df['reference_fasta_path'] = reference_fasta_path
     # df['thread_count'] = thread_count
