@@ -75,7 +75,7 @@ def main():
     engine = sqlalchemy.create_engine(engine_path, isolation_level='SERIALIZABLE')
 
     
-    bam_validate.bam_validate(uuid, preharmonized_bam_path, logger)
+    bam_validate.bam_validate(uuid, preharmonized_bam_path, engine, logger)
     
     bam_util.new_bam_to_fastq(uuid, preharmonized_bam_path, logger)
 
@@ -95,7 +95,7 @@ def main():
 
     harmonized_sorted_bam_path = picard_bam_sort.bam_sort(uuid, preharmonized_bam_path, harmonized_bam_path, reference_fasta_path, logger, be_lenient)
 
-    bam_validate.bam_validate(uuid, harmonized_sorted_bam_path, logger)
+    bam_validate.bam_validate(uuid, harmonized_sorted_bam_path, engine, logger)
 
 
 if __name__ == '__main__':
