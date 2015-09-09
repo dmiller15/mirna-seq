@@ -83,7 +83,7 @@ def main():
     fastq_dir = os.path.join(top_dir, 'fastq')
     fastq_validate.fastq_guess_encoding(uuid, fastq_dir, engine, logger)
     
-    fastq_validate.fastq_validate(uuid, fastq_path, logger)
+    fastq_validate.fastq_validate(uuid, fastq_dir, engine, logger)
 
     # Harmonization
     be_lenient = False
