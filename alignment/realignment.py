@@ -76,26 +76,27 @@ def main():
 
     
     bam_validate.bam_validate(uuid, preharmonized_bam_path, engine, logger)
-    
+    readgroup_path_dict = bam_util.write_readgroups(uuid, preharmonized_bam_path, engine, logger)    
     bam_util.bam_to_fastq(uuid, preharmonized_bam_path, engine, logger)
 
     top_dir = os.path.dirname(preharmonized_bam_path)
     fastq_dir = os.path.join(top_dir, 'fastq')
-    fastq_name = os.listdir(fastq_dir)[0]
-    fastq_path = os.path.join(fastq_dir, fastq_name)
-
+    fastq_validate.fastq_guess_encoding(uuid, fastq_dir, engine, logger)
+    
     fastq_validate.fastq_validate(uuid, fastq_path, logger)
 
     # Harmonization
-    harmonized_bam_path = bam_util.bwa_aln_single(uuid, top_dir, fastq_dir, fastq_name, top_dir, reference_fasta_path, engine, logger)
-    
-    be_lenient = False                              
-    if pipe_util.is_aln_bam(harmonized_bam_path, logger):
-        be_lenient = True
+    be_lenient = False
+    harmonized_readgroup_bam_path_list = bwa.bwa(uuid, preharmonized_bam_path, reference_fasta_path, readgroup_path_dict, engine, logger)
+                             
+    for harmonized_readgroup_bam_path in harmonized_readgroup_bam_path_list:
+        if pipe_util.is_aln_bam(harmoized_readgroup_bam_path, logger):
+            be_lenient = True
+                
+    harmonized_sorted_bam_path_list = picard_bam_sort.bam_sort(uuid, preharmonized_bam_path, harmonized_readgroup_bam_path_list, reference_fasta_path, engine, logger, be_lenient)
 
-    harmonized_sorted_bam_path = picard_bam_sort.bam_sort(uuid, preharmonized_bam_path, harmonized_bam_path, reference_fasta_path, logger, be_lenient)
-
-    bam_validate.bam_validate(uuid, harmonized_sorted_bam_path, engine, logger)
+    for harmoized_sorted_bam_path in harmonized_sorted_bam_path_list:
+        bam_validate.bam_validate(uuid, harmonized_sorted_bam_path, engine, logger)
 
 
 if __name__ == '__main__':

@@ -6,6 +6,29 @@ import sys
 
 import pipe_util
 
+def buildsefastqlist(fastqlist):
+    sefastq_list = list()
+    fastq_re = re.compile('(^[A-Z0-9_.-]+)_(s).fq')
+    for fastq in fastqlist:
+        fastq_match = fastq_re.match(fastq)
+        if fastq_match is None:
+            continue
+        if len(fastq_match.groups()) == 2:
+            seread = fastq_match.group()
+            sefastq_list.append(seread)
+    return sefastq_list
+
+def buildfastqlist(adir, logger):
+    sorted_fastqlist_fiile=os.path.join(adir, 'fastqlist.txt')
+    # Already step omitted
+    logger.info('building fastq list in %s' % adir)
+    fastqlist = [os.path.basename(fastq) for fastq in (glob.glob(os.path.join(adir, '*.fq')))]
+    sorted_fastqlist = sorted(fastqlist)
+    with open(sorted_fastqlist_file, 'w') as sorted_fastqlist_open:
+        sorted_fastqlist_open.write(str(sorted_fastqlist))
+    # Create already step omitted
+    logger.info('completed building fastq list in %s' % adir)
+    return sorted_fastqlist
 
 def buildfastq_len_list(adir):
     fastq_len_list = [fastq_path for fastq_path in (glob.glob(os.path.join(adir, '*.fq.len')))]
