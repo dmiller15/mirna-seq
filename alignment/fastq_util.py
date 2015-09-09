@@ -19,7 +19,7 @@ def buildsefastqlist(fastqlist):
     return sefastq_list
 
 def buildfastqlist(adir, logger):
-    sorted_fastqlist_fiile=os.path.join(adir, 'fastqlist.txt')
+    sorted_fastqlist_file=os.path.join(adir, 'fastqlist.txt')
     # Already step omitted
     logger.info('building fastq list in %s' % adir)
     fastqlist = [os.path.basename(fastq) for fastq in (glob.glob(os.path.join(adir, '*.fq')))]

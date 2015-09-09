@@ -21,7 +21,7 @@ def guess_enc_db(uuid, fq_path, engine, logger):
         guess_enc_value = guess_enc_open.readline().strip()
     data_dict = dict()
     # already step omitted
-    logger.info('writing `guess_enc_db`: %s' fq_path)
+    logger.info('writing `guess_enc_db`: %s' % fq_path)
     data_dict['uuid'] = [uuid]
     data_dict['fastq_name'] = fastq_name
     data_dict['guess'] = guess_enc_value
@@ -63,7 +63,7 @@ def fastq_guess_encoding(uuid, fastq_dir, engine, logger): # future thread count
     sefastqlist = fastq_util.buildsefastqlist(fastqlist)
     logger.info('sefastqlist=%s' % sefastqlist)
     for seread in sefastqlist:
-        fq_path = os.path.join(fq_path, logger)
+        fq_path = os.path.join(fastq_dir, seread)
         fq_path_size = get_fastq_size(fq_path, logger)
         if fq_path_size > 0:
             do_guess_encoding(uuid, fq_path, engine, logger)
@@ -99,6 +99,7 @@ def do_guess_encoding(uuid, fastq_path, engine, logger):
     pipe_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
     guess_path = os.path.join(pipe_dir, 'guess-encoding.py')
     guess_cmd = 'python2' + guess_path
+    time_cmd = '/usr/bin/time -v ' + guess_cmd, + ' -f ' + fastq_path
     proc = subprocess.Popen(time_cmd, shell=True, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
     output = proc.communicate()[0]
     logger.info('output=%s' % output)

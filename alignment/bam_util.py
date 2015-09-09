@@ -6,6 +6,9 @@ import sys
 import pipe_util
 import df_util
 import time_util
+#
+import pysam
+import pandas as pd
 
 def bam_to_fastq(uuid, bam_path, engine, logger):
     step_dir = os.path.dirname(bam_path)
@@ -44,7 +47,7 @@ def header_rg_list_to_rg_dicts(header_rg_list):
     for rg_list in header_rg_list:
         keys_values = rg_list.lstrip('@RG').lstrip('\t').lstrip('@RG').lstrip('\t').split('\t')
         readgroup = dict()
-        for key_value in key_values:
+        for key_value in keys_values:
             key_value_split = key_value.split(':')
             a_key = key_value_split[0]
             a_value = key_value_split[1]
@@ -58,14 +61,14 @@ def write_readgroups(uuid, bam_path, engine, logger):
     logger.info('extracting readgroups from %s' % bam_path)
     bam_dir = os.path.dirname(bam_path)
     samfile = pysam.AlignmentFile(bam_path, 'rb')
-    header = samfile.txt
+    header = samfile.text
     header_list = header.split('\n')
     header_rg_list = [ header_line for header_line in header_list if header_line.startswith('@RG') ]
     readgroups = header_rg_list_to_rg_dicts(header_rg_list)
 
     readgroup_path_dict = dict()
     for readgroup in readgroups:
-        rg_id = readgroups['ID']
+        rg_id = readgroup['ID']
         outfile = rg_id + '.RG'
         outfile_path = os.path.join(bam_dir, outfile)
         readgroup_path_dict[rg_id] = outfile_path
@@ -96,7 +99,7 @@ def write_readgroups(uuid, bam_path, engine, logger):
             unique_key_dict = {'uuid': uuid, 'ID': readgroup['ID'], 'key': rg_key}
             df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
             # create already step omitted
-        logger.info('completed storing @RG %s to db' readgroup['ID'])
+        logger.info('completed storing @RG %s to db' % readgroup['ID'])
     return readgroup_path_dict
 
 def bwa_aln_single(uuid, bam_path, fastq_dir, read1, realn_dir, readkey, reference_fasta_path, rg_str, fastq_encoding, engine, logger):
