@@ -87,15 +87,15 @@ def main():
 
     # Harmonization
     be_lenient = False
-    harmonized_readgroup_bam_path_list = bwa.bwa(uuid, preharmonized_bam_path, reference_fasta_path, readgroup_path_dict, engine, logger)
+    harmonized_readgroup_bam_path_list = bam_util.bwa(uuid, preharmonized_bam_path, reference_fasta_path, readgroup_path_dict, engine, logger)
                              
     for harmonized_readgroup_bam_path in harmonized_readgroup_bam_path_list:
-        if pipe_util.is_aln_bam(harmoized_readgroup_bam_path, logger):
+        if pipe_util.is_aln_bam(harmonized_readgroup_bam_path, logger):
             be_lenient = True
                 
     harmonized_sorted_bam_path_list = picard_bam_sort.bam_sort(uuid, preharmonized_bam_path, harmonized_readgroup_bam_path_list, reference_fasta_path, engine, logger, be_lenient)
 
-    for harmoized_sorted_bam_path in harmonized_sorted_bam_path_list:
+    for harmonized_sorted_bam_path in harmonized_sorted_bam_path_list:
         bam_validate.bam_validate(uuid, harmonized_sorted_bam_path, engine, logger)
 
 

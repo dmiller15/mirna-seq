@@ -3,6 +3,7 @@ import os
 import logging
 import sys
 #
+import fastq_util
 import pipe_util
 import df_util
 import time_util
@@ -121,14 +122,16 @@ def bwa_aln_single(uuid, bam_path, fastq_dir, read1, realn_dir, readkey, referen
     # BWA ALN Command
     # Already step check omitted
     aln_frontend = ['bwa', 'aln', reference_fasta_path, f1]
-    if fastq_encoding == 'Illumina_1.8':
+
+    if fastq_encoding == 'Illumina-1.8':
         logger.info('%s is fastq_encoding, so use `bwa aln`' % fastq_encoding)
     elif fastq_encoding == 'Illumina-1.3' or fastq_encoding == 'Illumina-1.5' or fastq_encoding == 'Illumina-1.5-HMS':
         logger.info('%s is fastq_encoding, so use `bwa aln -I`' % fastq_encoding)
         aln_frontend.insert(3, '-I')
     else:
-        logger.info('unhandled fastq_encoding: ' % fastq_encoding)
+        logger.info('unhandled fastq_encoding: %s' % fastq_encoding)
         sys.exit(1)
+
     aln_backend = [ ' > ', outsai_path ]
     aln_cmd = aln_frontend + aln_backend
     shell_aln_cmd = ' '.join(aln_cmd)
@@ -174,8 +177,8 @@ def bwa(uuid, bam_path, reference_fasta_path, readgroup_path_dict, engine, logge
     bam_path_list = list()
     for seread in sefastqlist:
         seread_fastq_encoding = get_fastq_encoding(seread, fastq_dir, logger)
-        rg_str = get_readgroup_str(uuid, fastq_dir, seread, engine, logger) #soon to be in bam_util
-        bam_path = bwa_aln_single(uuid, bam_path, fastq_dir, seread, realn_dir, 's', reference_fasta_path, rg_str, seread_fastq_encoding, enging, logger)
+        rg_str = get_readgroup_str(seread, readgroup_path_dict, logger) #soon to be in bam_util
+        bam_path = bwa_aln_single(uuid, bam_path, fastq_dir, seread, realn_dir, 's', reference_fasta_path, rg_str, seread_fastq_encoding, engine, logger)
         bam_path_list.append(bam_path)
     return bam_path_list
 

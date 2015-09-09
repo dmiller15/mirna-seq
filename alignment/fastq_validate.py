@@ -48,13 +48,13 @@ def fastqc_to_db(uuid, fq_path, engine, logger):
     data_dict['uuid'] = [uuid]
     data_dict['fastq_name'] = fastq_name
     data_dict = fastqc_data_to_dict(data_dict, fastqc_data_path, engine, logger)
-    data_dict = fastwc_summary_to_dict(data_dict, fastqc_summary_path, engine, logger)
+    data_dict = fastqc_summary_to_dict(data_dict, fastqc_summary_path, engine, logger)
     df = pd.DataFrame(data_dict)
     table_name = 'fastqc_data'
     unique_key_dict = {'uuid': uuid, 'fastq_name': fastq_name}
     df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
     # create already step omitted
-    logger.info('completed writing `fastqc db`: %s' fq_path)
+    logger.info('completed writing `fastqc db`: %s' % fq_path)
 
 def guess_enc_db(uuid, fq_path, engine, logger):
     fastq_dir = os.path.dirname(fq_path)
@@ -158,7 +158,7 @@ def do_guess_encoding(uuid, fastq_path, engine, logger):
     guess_cmd = 'python2 ' + guess_path
     time_cmd = '/usr/bin/time -v ' + guess_cmd + ' -f ' + fastq_path
     proc = subprocess.Popen(time_cmd, shell=True, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
-    output = proc.communicate()[1]
+    output = proc.communicate()[0]
     logger.info('output=%s' % output)
     df = time_util.store_time(uuid, time_cmd, output, logger)
     df['fastq_path'] = fastq_path

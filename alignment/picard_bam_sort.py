@@ -27,9 +27,9 @@ def bam_sort(uuid, preharmonized_bam_path, bam_path_list, reference_fasta_path, 
         df = time_util.store_time(uuid, cmd, output, logger)
         df['bam_path'] = outbam_path
         df['reference_fasta_path'] = reference_fasta_path
-        unique_key_dict = {'uuid': uuid, 'bam_path': outbam_path, 'reference_fasta_path': referecne_fasta_path}
+        unique_key_dict = {'uuid': uuid, 'bam_path': outbam_path, 'reference_fasta_path': reference_fasta_path}
         table_name = 'time_mem_picard_bamsort'
         df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
         logger.info('completed running step `picard sort` of: %s' % bam_name)
-    return outbam_path_list
+    return out_bam_path_list
         
