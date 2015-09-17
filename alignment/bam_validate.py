@@ -134,26 +134,30 @@ def store_validate_error(uuid, bam_path, validate_file, engine, logger):
 def bam_validate(uuid, bam_path, engine, logger):
     step_dir = os.path.dirname(bam_path)
     validate_file = bam_path + '.validate'
-    # Already step left out
-    logger.info('running step validate of: %s' % bam_path)
-    home_dir = os.path.expanduser('~')
-    mo = int((2 ** 32) / 2) - 1
+    if pipe_util.already_step(step_dir, 'validate', logger):
+        logger.info('already completed step `validate` of: %s' % bam_path)
+    else:
+        logger.info('running step validate of: %s' % bam_path)
+        home_dir = os.path.expanduser('~')
+        mo = int((2 ** 32) / 2) - 1
+        
+        cmd = ['java', '-d64', '-jar', os.path.join(home_dir, 'tools/picard-tools/picard.jar'), 'ValidateSamFile', 'MO=' + str(mo), 'INPUT=' + bam_path, 'OUTPUT=' + validate_file]
+        output = pipe_util.do_command(cmd, logger, allow_fail=True)
+        df = time_util.store_time(uuid, cmd, output, logger)
+        df['bam_path'] = bam_path
+        unique_key_dict = {'uuid': uuid, 'bam_path': bam_path}
+        table_name = 'time_mem_picard_ValidateSamFile'
+        df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
+        logger.info('completed running step validate of: %s' % bam_path)
+        pipe_util.create_already_step(step_dir, 'validate', logger)
 
-    cmd = ['java', '-d64', '-jar', os.path.join(home_dir, 'tools/picard-tools/picard.jar'), 'ValidateSamFile', 'MO=' + str(mo), 'INPUT=' + bam_path, 'OUTPUT=' + validate_file]
-    output = pipe_util.do_command(cmd, logger, allow_fail=True)
-    df = time_util.store_time(uuid, cmd, output, logger)
-    df['bam_path'] = bam_path
-    unique_key_dict = {'uuid': uuid, 'bam_path': bam_path}
-    table_name = 'time_mem_picard_ValidateSamFile'
-    df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
-    logger.info('completed running step validate of: %s' % bam_path)
-    # Create already step
-
-    # Already step left out
-    logger.info('storing `picard validate` to db')
-    store_validate_error(uuid, bam_path, validate_file, engine, logger)
-    # Create already step
-    logger.info('completed storing `picard validate` to db')
+    if pipe_util.already_step(step_dir, 'validate_db', logger):
+        logger.info('alreaddy stored `picard validate` to db')
+    else:
+        logger.info('storing `picard validate` to db')
+        store_validate_error(uuid, bam_path, validate_file, engine, logger)
+        pipe_util.create_already_step(step_dir, 'validate_db', logger)
+        logger.info('completed storing `picard validate` to db')
         
                                                     
                         

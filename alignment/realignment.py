@@ -88,6 +88,9 @@ def main():
     # Harmonization
     be_lenient = False
     harmonized_readgroup_bam_path_list = bam_util.bwa(uuid, preharmonized_bam_path, reference_fasta_path, readgroup_path_dict, engine, logger)
+
+    fastq_list = fastq_util.buildfastqlist(fastq_dir, logger)
+    fastq_path_list = [os.path.join(fastq_dir, fastq) for fastq in fastq_list]
                              
     for harmonized_readgroup_bam_path in harmonized_readgroup_bam_path_list:
         if pipe_util.is_aln_bam(harmonized_readgroup_bam_path, logger):
@@ -95,8 +98,11 @@ def main():
                 
     harmonized_sorted_bam_path_list = picard_bam_sort.bam_sort(uuid, preharmonized_bam_path, harmonized_readgroup_bam_path_list, reference_fasta_path, engine, logger, be_lenient)
 
-    for harmonized_sorted_bam_path in harmonized_sorted_bam_path_list:
-        bam_validate.bam_validate(uuid, harmonized_sorted_bam_path, engine, logger)
+    harmonized_bam_merge_path = picard_bam_merge.bam_merge(uuid, preharmonized_bam_path, harmonized_sorted_bam_path_list, engine, logger, be_lenient)
+
+    bam_validate.bam_validate(uuid, harmonized_bam_merge_path, engine, logger)
+
+    final_validate.final_validate(uuid, preharmonized_bam_path, harmonized_bam_merge_path, fastq_list, fastq_dir, engine, logger)
 
 
 if __name__ == '__main__':

@@ -16,20 +16,23 @@ def bam_sort(uuid, preharmonized_bam_path, bam_path_list, reference_fasta_path, 
         tmpfile = os.path.join(outdir_path, 'tmpfile_' + bam_name)
         logger.info('outbam_path=%s' % outbam_path)
         out_bam_path_list.append(outbam_path)
-        # already step left out
-        logger.info('running step `picard sort` of: %s' % bam_name)
-        os.makedirs(outdir_path, exist_ok=True)
-        home_dir = os.path.expanduser('~')
-        cmd = ['java', '-d64', '-jar', os.path.join(home_dir, 'tools/picard-tools/picard.jar'), 'SortSam', 'SORT_ORDER=coordinate', 'INPUT=' + input_bam, 'OUTPUT=' + outbam_path, 'TMP_DIR=' + outdir_path, 'CREATE_INDEX=true', 'REFERENCE_SEQUENCE=' + reference_fasta_path]
-        if be_lenient:
-            cmd.append('VALIDATION_STRINGENCY=LENIENT')
-        output = pipe_util.do_command(cmd, logger)
-        df = time_util.store_time(uuid, cmd, output, logger)
-        df['bam_path'] = outbam_path
-        df['reference_fasta_path'] = reference_fasta_path
-        unique_key_dict = {'uuid': uuid, 'bam_path': outbam_path, 'reference_fasta_path': reference_fasta_path}
-        table_name = 'time_mem_picard_bamsort'
-        df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
-        logger.info('completed running step `picard sort` of: %s' % bam_name)
+        if pipe_util.already_step(outdir_path, 'picard_sort_' + bam_base, logger):
+            logger.info('already completed step `picard sort` of: %s' % bam_name)
+        else:
+            logger.info('running step `picard sort` of: %s' % bam_name)
+            os.makedirs(outdir_path, exist_ok=True)
+            home_dir = os.path.expanduser('~')
+            cmd = ['java', '-d64', '-jar', os.path.join(home_dir, 'tools/picard-tools/picard.jar'), 'SortSam', 'SORT_ORDER=coordinate', 'INPUT=' + input_bam, 'OUTPUT=' + outbam_path, 'TMP_DIR=' + outdir_path, 'CREATE_INDEX=true', 'REFERENCE_SEQUENCE=' + reference_fasta_path]
+            if be_lenient:
+                cmd.append('VALIDATION_STRINGENCY=LENIENT')
+            output = pipe_util.do_command(cmd, logger)
+            df = time_util.store_time(uuid, cmd, output, logger)
+            df['bam_path'] = outbam_path
+            df['reference_fasta_path'] = reference_fasta_path
+            unique_key_dict = {'uuid': uuid, 'bam_path': outbam_path, 'reference_fasta_path': reference_fasta_path}
+            table_name = 'time_mem_picard_bamsort'
+            df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
+            pipe_util.create_already_step(outdir_path, 'picard_sort_' + bam_base, logger)
+            logger.info('completed running step `picard sort` of: %s' % bam_name)
     return out_bam_path_list
         

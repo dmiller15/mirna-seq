@@ -18,19 +18,22 @@ def bam_to_fastq(uuid, bam_path, engine, logger):
     logger.info('uuid_dir is: %s' % uuid_dir)
     fastq_dir = os.path.join(uuid_dir, 'fastq')
     logger.info('fastq_dir is: %s' % fastq_dir)
-    # Omit already step for now
-    logger.info('running step `bamtofastq` of %s: ' % bam_path)
-    os.makedirs(fastq_dir, exist_ok=True)
-    tempfq = os.path.join(fastq_dir, 'tempfq')
-    cmd = ['bamtofastq', 'S=%s' % uuid + '.fq', 'filename=' + bam_path, 'outputdir=' + fastq_dir, 'tryoq=1', 'collate=1', 'outputperreadgroup=1', 'T=' + tempfq]
-    output = pipe_util.do_command(cmd, logger)
-    df = time_util.store_time(uuid, cmd, output, logger)
-    df['bam_path'] = bam_path
-    unique_key_dict = {'uuid': uuid, 'bam_path': bam_path}
-    table_name = 'time_mem_bamtofastq'
-    df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
-    # Create already step
-    logger.info('completed running step `bamtofastq` of: %s' % bam_path)
+    if pipe_util.already_step(fastq_dir, 'fastq', logger):
+        logger.info('already completed step `bamtofastq` of: %s' % bam_path)
+    else:
+        logger.info('running step `bamtofastq` of %s: ' % bam_path)
+        os.makedirs(fastq_dir, exist_ok=True)
+        tempfq = os.path.join(fastq_dir, 'tempfq')
+        cmd = ['bamtofastq', 'S=%s' % uuid + '.fq', 'filename=' + bam_path, 'outputdir=' + fastq_dir, 'tryoq=1', 'collate=1', 'outputperreadgroup=1', 'T=' + tempfq]
+        output = pipe_util.do_command(cmd, logger)
+        df = time_util.store_time(uuid, cmd, output, logger)
+        df['bam_path'] = bam_path
+        unique_key_dict = {'uuid': uuid, 'bam_path': bam_path}
+        table_name = 'time_mem_bamtofastq'
+        df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
+        pipe_util.create_already_step(fastq_dir, 'fastq', logger)
+        logger.info('completed running step `bamtofastq` of: %s' % bam_path)
+    return
 
 def get_readgroup_str(readname, readgroup_path_dict, logger):
     fq_split = readname.split('_')
@@ -57,51 +60,67 @@ def header_rg_list_to_rg_dicts(header_rg_list):
     return readgroups_list
 
 def write_readgroups(uuid, bam_path, engine, logger):
-    # step_dir = os.path.dirname(bam_path)
-    # Already step omitted
-    logger.info('extracting readgroups from %s' % bam_path)
-    bam_dir = os.path.dirname(bam_path)
-    samfile = pysam.AlignmentFile(bam_path, 'rb')
-    header = samfile.text
-    header_list = header.split('\n')
-    header_rg_list = [ header_line for header_line in header_list if header_line.startswith('@RG') ]
-    readgroups = header_rg_list_to_rg_dicts(header_rg_list)
+    step_dir = os.path.dirname(bam_path)
+    if pipe_util.already_step(step_dir, 'readgroups', logger):
+        logger.info('already extracted readgroups from %s' % bam_path)
+        readgroup_path_list = glob.glob(os.path.join(step_dir, '*.RG'))
+        readgroup_path_dict = dict()
+        for readgroup_path in readgroup_path_list:
+            readgroup_file = os.path.basename(readgroup_path)
+            readgroup = readgroup_file.rstrip('.RG')
+            readgroup_path_dict[readgroup] = readgroup_path
+        return readgroup_path_dict
+    else:
+        logger.info('extracting readgroups from %s' % bam_path)
+        bam_dir = os.path.dirname(bam_path)
+        samfile = pysam.AlignmentFile(bam_path, 'rb')
+        header = samfile.text
+        header_list = header.split('\n')
+        header_rg_list = [ header_line for header_line in header_list if header_line.startswith('@RG') ]
+        readgroups = header_rg_list_to_rg_dicts(header_rg_list)
 
-    readgroup_path_dict = dict()
-    for readgroup in readgroups:
-        rg_id = readgroup['ID']
-        outfile = rg_id + '.RG'
-        outfile_path = os.path.join(bam_dir, outfile)
-        readgroup_path_dict[rg_id] = outfile_path
-        # alread step omitted
-        outfile_open = open(outfile_path, 'w')
-        outstring = '@RG'
-        for rg_key in sorted(readgroup.keys()):
-            outstring += '\\t' + rg_key + ':' + readgroup[rg_key]
-        outfile_open.write(outstring)
-        outfile_open.close()
-    logger.info('readgroup_path_dict=%s' % readgroup_path_dict)
-    # create already step omitted
-    logger.info('completed extracting readgroups from %s' % bam_path)
+        readgroup_path_dict = dict()
+        for readgroup in readgroups:
+            rg_id = readgroup['ID']
+            outfile = rg_id + '.RG'
+            outfile_path = os.path.join(bam_dir, outfile)
+            readgroup_path_dict[rg_id] = outfile_path
+            if pipe_util.already_step(bam_dir, readgroup['ID'] + '_rg_file', logger):
+                logger.info('already wrote @RG to: %s' % outfile_path)
+            else:
+                outfile_open = open(outfile_path, 'w')
+                outstring = '@RG'
+                for rg_key in sorted(readgroup.keys()):
+                    outstring += '\\t' + rg_key + ':' + readgroup[rg_key]
+                outfile_open.write(outstring)
+                outfile_open.close()
+                pipe_util.create_already_step(bam_dir, readgroup['ID'] + '_rg_file', logger)
+        logger.info('readgroup_path_dict=%s' % readgroup_path_dict)
+        pipe_util.create_already_step(step_dir, 'readgroups', logger)
+        logger.info('completed extracting readgroups from %s' % bam_path)
 
     # Store @RG to db
-    # omitted already step
-    logger.info('storing readgroups of %s to db' % bam_path)
-    for readgroup in readgroups:
-        # omitted already step
-        readgroup['uuid'] = [uuid]
-        table_name = 'readgroups'
-        for rg_key in sorted(readgroup.keys()):
-            rg_dict = dict()
-            rg_dict['uuid'] = [uuid]
-            rg_dict['ID'] = readgroup['ID']
-            rg_dict['value'] = readgroup[rg_key]
-            df = pd.DataFrame(rg_dict)
-            unique_key_dict = {'uuid': uuid, 'ID': readgroup['ID'], 'key': rg_key}
-            df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
-            # create already step omitted
-        logger.info('completed storing @RG %s to db' % readgroup['ID'])
-    return readgroup_path_dict
+    if pipe_util.already_step(step_dir, 'readgroups_db', logger):
+        logger.info('already stored readgroups of %s to db' % bam_path)
+    else:
+        logger.info('storing readgroups of %s to db' % bam_path)
+        for readgroup in readgroups:
+            if pipe_util.already_step(bam_dir, readgroup['ID'] + '_rg_db', logger):
+                logger.info('already wrote %s to db' % readgroup['ID'])
+            else:
+                readgroup['uuid'] = [uuid]
+                table_name = 'readgroups'
+                for rg_key in sorted(readgroup.keys()):
+                    rg_dict = dict()
+                    rg_dict['uuid'] = [uuid]
+                    rg_dict['ID'] = readgroup['ID']
+                    rg_dict['value'] = readgroup[rg_key]
+                    df = pd.DataFrame(rg_dict)
+                    unique_key_dict = {'uuid': uuid, 'ID': readgroup['ID'], 'key': rg_key}
+                    df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
+                    pipe_util.create_already_step(bam_dir, readgroup['ID'] + '_rg_db', logger)
+                logger.info('completed storing @RG %s to db' % readgroup['ID'])
+        return readgroup_path_dict
 
 def bwa_aln_single(uuid, bam_path, fastq_dir, read1, realn_dir, readkey, reference_fasta_path, rg_str, fastq_encoding, engine, logger):
     se_realn_dir = os.path.join(realn_dir, 'bwa_aln_' + readkey)
@@ -120,47 +139,51 @@ def bwa_aln_single(uuid, bam_path, fastq_dir, read1, realn_dir, readkey, referen
     os.makedirs(se_realn_dir, exist_ok=True)
 
     # BWA ALN Command
-    # Already step check omitted
-    aln_frontend = ['bwa', 'aln', reference_fasta_path, f1]
-
-    if fastq_encoding == 'Illumina-1.8':
-        logger.info('%s is fastq_encoding, so use `bwa aln`' % fastq_encoding)
-    elif fastq_encoding == 'Illumina-1.3' or fastq_encoding == 'Illumina-1.5' or fastq_encoding == 'Illumina-1.5-HMS':
-        logger.info('%s is fastq_encoding, so use `bwa aln -I`' % fastq_encoding)
-        aln_frontend.insert(3, '-I')
+    if pipe_util.already_step(se_realn_dir, readkey + '_sai_' + fastqbasename, logger):
+        logger.info('already completed step `bwa aln` of: %s' % read1)
     else:
-        logger.info('unhandled fastq_encoding: %s' % fastq_encoding)
-        sys.exit(1)
+        aln_frontend = ['bwa', 'aln', reference_fasta_path, f1]
+        
+        if fastq_encoding == 'Illumina-1.8':
+            logger.info('%s is fastq_encoding, so use `bwa aln`' % fastq_encoding)
+        elif fastq_encoding == 'Illumina-1.3' or fastq_encoding == 'Illumina-1.5' or fastq_encoding == 'Illumina-1.5-HMS':
+            logger.info('%s is fastq_encoding, so use `bwa aln -I`' % fastq_encoding)
+            aln_frontend.insert(3, '-I')
+        else:
+            logger.info('unhandled fastq_encoding: %s' % fastq_encoding)
+            sys.exit(1)
 
-    aln_backend = [ ' > ', outsai_path ]
-    aln_cmd = aln_frontend + aln_backend
-    shell_aln_cmd = ' '.join(aln_cmd)
-    aln_output = pipe_util.do_shell_command(shell_aln_cmd, logger)
-    df = time_util.store_time(uuid, shell_aln_cmd, aln_output, logger)
-    df['sai_path'] = outsai_path
-    df['reference_fasta_path'] = reference_fasta_path
-    # df['thread_count'] = thread_count
-    unique_key_dict = {'uuid': uuid, 'sai_path': outsai_path, 'reference_fasta_path': reference_fasta_path} # 'thread_count': thread_count}
-    table_name = 'time_mem_bwa_aln'
-    df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
-    logger.info('completed running step `bwa single aln` of: %s' % bam_path)
-    # Create already step omitted
+            aln_backend = [ ' > ', outsai_path ]
+            aln_cmd = aln_frontend + aln_backend
+            shell_aln_cmd = ' '.join(aln_cmd)
+            aln_output = pipe_util.do_shell_command(shell_aln_cmd, logger)
+            df = time_util.store_time(uuid, shell_aln_cmd, aln_output, logger)
+            df['sai_path'] = outsai_path
+            df['reference_fasta_path'] = reference_fasta_path
+            # df['thread_count'] = thread_count
+            unique_key_dict = {'uuid': uuid, 'sai_path': outsai_path, 'reference_fasta_path': reference_fasta_path} # 'thread_count': thread_count}
+            table_name = 'time_mem_bwa_aln'
+            df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
+            logger.info('completed running step `bwa single aln` of: %s' % bam_path)
+            pipe_util.create_already_step(se_realn_dir, readkey + '_' + fastqbasename, logger)
 
     # BWA SAMSE Command
-    # Already step check omitted
-    samse_cmd = ['bwa', 'samse', '-n 10', reference_fasta_path, '-r' + '"' + rg_str + '"', outsai_path, f1]
-    samtools_cmd = 'samtools view -Shb -o ' + outbam_path + ' -'
-    shell_samse_cmd = ' '.join(samse_cmd)
-    shell_cmd = shell_samse_cmd + ' | ' + samtools_cmd
-    samse_output = pipe_util.do_shell_command(shell_cmd, logger)
-    df = time_util.store_time(uuid, shell_cmd, samse_output, logger)
-    df['bam_path'] = bam_path
-    df['reference_fasta_path'] = reference_fasta_path
-    unique_key_dict = {'uuid': uuid, 'bam_path': outbam_path, 'reference_fasta_path': reference_fasta_path}
-    table_name = 'time_mem_bwa_samse'
-    df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
-    logger.info('completed running step `bwa single samse` of: %s' % bam_path)
-    # Create already step omitted
+    if pipe_util.already_step(se_realn_dir, readkey + '_samse_' + fastqbasename, logger):
+        logger.info('already completed set `bwa samse` of %s:' % outbam_path)
+    else:
+        samse_cmd = ['bwa', 'samse', '-n 10', reference_fasta_path, '-r' + '"' + rg_str + '"', outsai_path, f1]
+        samtools_cmd = 'samtools view -Shb -o ' + outbam_path + ' -'
+        shell_samse_cmd = ' '.join(samse_cmd)
+        shell_cmd = shell_samse_cmd + ' | ' + samtools_cmd
+        samse_output = pipe_util.do_shell_command(shell_cmd, logger)
+        df = time_util.store_time(uuid, shell_cmd, samse_output, logger)
+        df['bam_path'] = bam_path
+        df['reference_fasta_path'] = reference_fasta_path
+        unique_key_dict = {'uuid': uuid, 'bam_path': outbam_path, 'reference_fasta_path': reference_fasta_path}
+        table_name = 'time_mem_bwa_samse'
+        df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
+        logger.info('completed running step `bwa single samse` of: %s' % bam_path)
+        pipe_util.create_already_step(se_realn_dir, readkey + '_' + fastqbasename, logger)
     return outbam_path
 
 def bwa(uuid, bam_path, reference_fasta_path, readgroup_path_dict, engine, logger):

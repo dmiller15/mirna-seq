@@ -56,6 +56,25 @@ def do_shell_command(cmd, logger, stdout=subprocess.STDOUT, stderr=subprocess.PI
     logger.info('completed cmd: %s' % str(timecmd))
     return output
 
+def touch(fname, logger, mode=0o666, dir_fd=None, **kwargs):
+    logger.info('creating empty file: %s' % fname)
+    flags = os.O_CREAT | os.O_APPEND
+    with os.fdopen(os.open(fname, flags=flags, mode=mode, dir_fd=dir_fd)) as f:
+        os.utime(f.fileno() if os.utime in os.supports_fd else fname,
+                 dir_fd=None if os.supports_fd else dir_fd, **kwargs)
+
+def already_step(step_dir, step, logger):
+    have_step_flag = os.path.join(step_dir, 'have_' + step)
+    if os.path.exists(have_step_flag):
+        logger.info('step flag exists: %s' % have_step_flag)
+        return True
+    else:
+        logger.info('step flag does not exist:%s' % have_step_flag)
+        return False
+
+def create_already_step(step_dir, step, logger):
+    have_step_flag = os.path.join(step_dir, 'have_' + step)
+    touch(have_step_flag, logger)
 
 def is_aln_bam(bam_path, logger):
     bwa_type = os.path.basename(os.path.dirname(bam_path))

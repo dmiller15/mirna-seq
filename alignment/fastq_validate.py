@@ -43,18 +43,35 @@ def fastqc_to_db(uuid, fq_path, engine, logger):
     qc_report_dir = os.path.join(fastq_dir, fastq_base + '_fastqc')
     fastqc_data_path = os.path.join(qc_report_dir, 'fastqc_data.txt')
     fastqc_summary_path = os.path.join(qc_report_dir, 'summary.txt')
-    # already step omitted
-    logger.info('writing `fastqc db`: %s' % fq_path)
-    data_dict['uuid'] = [uuid]
-    data_dict['fastq_name'] = fastq_name
-    data_dict = fastqc_data_to_dict(data_dict, fastqc_data_path, engine, logger)
-    data_dict = fastqc_summary_to_dict(data_dict, fastqc_summary_path, engine, logger)
-    df = pd.DataFrame(data_dict)
-    table_name = 'fastqc_data'
-    unique_key_dict = {'uuid': uuid, 'fastq_name': fastq_name}
-    df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
-    # create already step omitted
-    logger.info('completed writing `fastqc db`: %s' % fq_path)
+    if pipe_util.already_step(fastq_dir, 'fastqc_db_' + fastq_base, logger):
+        logger.info('already completed step `fastqc db`: %s' % fq_path)
+    else:
+        logger.info('writing `fastqc db`: %s' % fq_path)
+        data_dict['uuid'] = [uuid]
+        data_dict['fastq_name'] = fastq_name
+        data_dict = fastqc_data_to_dict(data_dict, fastqc_data_path, engine, logger)
+        data_dict = fastqc_summary_to_dict(data_dict, fastqc_summary_path, engine, logger)
+        df = pd.DataFrame(data_dict)
+        table_name = 'fastqc_data'
+        unique_key_dict = {'uuid': uuid, 'fastq_name': fastq_name}
+        df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
+        '''
+        data_key_list = ['>>Basic Statistics', '>>Per base sequence quality', '>>Per tile sequence quality',
+                         '>>Per sequence quality scores', '>>Per base sequence content', '>>Per sequence GC content',
+                         '>>Per base N content', '>>Sequence Length Distribution', '>>Sequence Duplication Levels',
+                         '>>Overrepresented sequences', '>>Adapter Content', '>>Kmer Content']
+        for data_key in data_key_list:
+            df = fastqc_detail_to_df(uuid, fq_path, fastqc_data_path, data_key, engine, logger)
+            if df is None:
+                continue
+            table_name = 'fastqc_data_' + '_'.join(data_key.lstrip('>>').strip().split(' '))
+            logger.info('fastqc_to_db() table_name=%s' % table_name)
+            unique_key_dict = {'uuid': uuid, 'fastq_path': fq_path}
+            df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
+        '''
+        pipe_util.create_already_step(fastq_dir, 'fastqc_db_' + fastq_base, logger)
+        logger.info('completed writing `fastqc db`: %s' % fq_path)
+    return
 
 def guess_enc_db(uuid, fq_path, engine, logger):
     fastq_dir = os.path.dirname(fq_path)
@@ -65,46 +82,56 @@ def guess_enc_db(uuid, fq_path, engine, logger):
     with open(guess_enc_path, 'r') as guess_enc_open:
         guess_enc_value = guess_enc_open.readline().strip()
     data_dict = dict()
-    # already step omitted
-    logger.info('writing `guess_enc_db`: %s' % fq_path)
-    data_dict['uuid'] = [uuid]
-    data_dict['fastq_name'] = fastq_name
-    data_dict['guess'] = guess_enc_value
-    df = pd.DataFrame(data_dict)
-    table_name = 'guess_fastq_encoding'
-    unique_key_dict = {'uuid': uuid, 'fastq_name': fastq_name}
-    df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
-    # create already step omitted
-    logger.info('completed writing `guess_enc_db`: %s' % fq_path)
+    if pipe_util.already_step(fastq_dir, 'fastq_encdb_' + fastq_base, logger):
+        logger.info('writing `guess_enc_db`: %s' %fq_path)
+    else:
+        logger.info('writing `guess_enc_db`: %s' % fq_path)
+        data_dict['uuid'] = [uuid]
+        data_dict['fastq_name'] = fastq_name
+        data_dict['guess'] = guess_enc_value
+        df = pd.DataFrame(data_dict)
+        table_name = 'guess_fastq_encoding'
+        unique_key_dict = {'uuid': uuid, 'fastq_name': fastq_name}
+        df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
+        pipe_util.create_already_step(fastq_dir, 'fastq_encdb_' + fastq_base, logger)
+        logger.info('completed writing `guess_enc_db`: %s' % fq_path)
 
 def do_fastqc(uuid, fastq_path, engine, logger):
     fastq_name = os.path.basename(fastq_path)
     fastq_dir = os.path.dirname(fastq_path)
     fastq_base, fastq_ext = os.path.splitext(fastq_name)
-    # already step omitted
-    logger.info('running step `fastqc`: %s' % fastq_path)
-    cmd = ['/home/ubuntu/tools/FastQC/fastqc', '--extract', fastq_path] # fix the path here
-    output = pipe_util.do_command(cmd, logger)
-    df = time_util.store_time(uuid, cmd, output, logger)
-    df['fastq_path'] = fastq_path
-    table_name = 'time_mem_fastqc'
-    unique_key_dict = {'uuid': uuid, 'fastq_path': fastq_path}
-    df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
-    # create already step omitted
+    if pipe_util.already_step(fastq_dir, 'fastqc_' + fastq_base, logger):
+        logger.info('already completed step `fastqc`: %s' % fastq_path)
+    else:
+        logger.info('running step `fastqc`: %s' % fastq_path)
+        cmd = ['/home/ubuntu/tools/FastQC/fastqc', '--extract', fastq_path] # fix the path here
+        output = pipe_util.do_command(cmd, logger)
+        df = time_util.store_time(uuid, cmd, output, logger)
+        df['fastq_path'] = fastq_path
+        table_name = 'time_mem_fastqc'
+        unique_key_dict = {'uuid': uuid, 'fastq_path': fastq_path}
+        df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
+        pipe_util.create_already_step(fastq_dir, 'fastqc_' + fastq_base, logger)
     return
 
 def get_fastq_size(fq_path, logger):
     fq_dir = os.path.dirname(fq_path)
     fq_name = os.path.basename(fq_path)
     size_file = os.path.join(fq_dir, fq_name + '.size')
-    # already step omitted
-    logger.info('determining size of fq %s' % fq_name)
-    size_value = os.path.getsize(fq_path)
-    with open(size_file, 'w') as size_open:
-        size_open.write(str(size_value))
-    # create already step omitted
-    logger.info('determined size of fq %s: %s' % (fq_name, str(size_value)))
-    return size_value
+    if pipe_util.already_step(fq_dir, fq_name + 'size', logger):
+        with open(size_file, 'r') as size_open:
+            size_str = size_open.readline()
+        size_value = int(size_str)
+        logger.info('already determined size of fq %s: %s' % (fq_name, str(size_value)))
+        return size_value
+    else:
+        logger.info('determining size of fq %s' % fq_name)
+        size_value = os.path.getsize(fq_path)
+        with open(size_file, 'w') as size_open:
+            size_open.write(str(size_value))
+        pipe_util.create_already_step(fq_dir, fq_name + 'size', logger)
+        logger.info('determined size of fq %s: %s' % (fq_name, str(size_value)))
+        return size_value
 
 def fastq_guess_encoding(uuid, fastq_dir, engine, logger): # future thread count
     logger.info('enter fastq_guess_encoding()')
@@ -151,20 +178,23 @@ def do_guess_encoding(uuid, fastq_path, engine, logger):
     fastq_name = os.path.basename(fastq_path)
     fastq_dir = os.path.dirname(fastq_path)
     fastq_base, fastq_ext = os.path.splitext(fastq_name)
-    # already step omitted
-    logger.info('running step `guess encoding` of %s' % fastq_path)
-    pipe_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
-    guess_path = os.path.join(pipe_dir, 'guess-encoding.py')
-    guess_cmd = 'python2 ' + guess_path
-    time_cmd = '/usr/bin/time -v ' + guess_cmd + ' -f ' + fastq_path
-    proc = subprocess.Popen(time_cmd, shell=True, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
-    output = proc.communicate()[0]
-    logger.info('output=%s' % output)
-    df = time_util.store_time(uuid, time_cmd, output, logger)
-    df['fastq_path'] = fastq_path
-    table_name = 'time_mem_guessencoding'
-    unique_key_dict = {'uuid': uuid, 'fastq_path': fastq_path}
-    df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
-    logger.info('do_guess_encoding output=%s' % output.decode())
-    write_fastq_format(fastq_path, output, logger)
-    # create already step omitted
+    if pipe_util.already_step(fastq_dir, 'guess_' + fastq_base, logger):
+        logger.info('already completed step `guess_encoding`: %s' % fastq_path)
+    else:
+        logger.info('running step `guess encoding` of %s' % fastq_path)
+        pipe_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
+        guess_path = os.path.join(pipe_dir, 'guess-encoding.py')
+        guess_cmd = 'python2 ' + guess_path
+        time_cmd = '/usr/bin/time -v ' + guess_cmd + ' -f ' + fastq_path
+        proc = subprocess.Popen(time_cmd, shell=True, stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+        output = proc.communicate()[0]
+        logger.info('output=%s' % output)
+        df = time_util.store_time(uuid, time_cmd, output, logger)
+        df['fastq_path'] = fastq_path
+        table_name = 'time_mem_guessencoding'
+        unique_key_dict = {'uuid': uuid, 'fastq_path': fastq_path}
+        df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
+        logger.info('do_guess_encoding output=%s' % output.decode())
+        write_fastq_format(fastq_path, output, logger)
+        pipe_util.create_already_step(fastq_dir, 'guess_' + fastq_base, logger)
+    return
