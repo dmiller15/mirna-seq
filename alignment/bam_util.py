@@ -188,7 +188,7 @@ def bwa_aln_single(uuid, bam_path, fastq_dir, read1, realn_dir, readkey, referen
 
 def get_fastq_encoding_from_db(fastq_name, fastq_dir, engine, logger):
     fastq_path = os.path.join(fastq_dir, fastq_name)
-    df = pandas.read_sql_query('select * from fastqc_data_Basic_Statistics where Measure="Encoding" and fastq_path="'+fastq_path+'"', engine)
+    df = pd.read_sql_query('select * from fastqc_data_Basic_Statistics where Measure="Encoding" and fastq_path="'+fastq_path+'"', engine)
     if len(df) != 1:
         logger.debug('There should only be one fastq: %s' % fastq_name)
         logger.debug('df = %s' % df)
@@ -199,17 +199,17 @@ def get_fastq_encoding_from_db(fastq_name, fastq_dir, engine, logger):
 
 def get_fastq_length_from_db(fastq_name, fastq_dir, engine, logger):
     fastq_path = os.path.join(fastq_dir, fastq_name)
-    df = pandas.read_sql_query('select * from fastqc_data_Basic_Statistics where Measure="Sequence length" and fastq_path="'+fastq_path+'"', engine)
+    df = pd.read_sql_query('select * from fastqc_data_Basic_Statistics where Measure="Sequence length" and fastq_path="'+fastq_path+'"', engine)
     if len(df) != 1:
         logger.debug('There should only be one fastq: %s' % fastq_name)
         logger.debug('df = %s' % df)
         sys.exit(1)
     else:
-        fastq_length = int(df['Value'][0])
+        fastq_length = 15 # Placeholder for int(df['Value'][0])
     return fastq_length
 
 def get_max_fastq_length_from_db(engine, logger):
-    df = pandas.read_sql_query('select * from fastqc_data_Basic_Statistics where Measure="Sequence length"', engine)
+    df = pd.read_sql_query('select * from fastqc_data_Basic_Statistics where Measure="Sequence length"', engine)
     max_fastq_length = int(max(list(df['Value'])))
     return max_fastq_length
 
@@ -228,7 +228,7 @@ def bwa(uuid, bam_path, reference_fasta_path, readgroup_path_dict, engine, logge
     for seread in sefastqlist:
         seread_fastq_encoding = get_fastq_encoding_from_db(seread, fastq_dir, engine, logger)
         seread_fastq_length = get_fastq_length_from_db(seread, fastq_dir, engine, logger)
-        rg_str = get_readgroup_str(seread, readgroup_path_dict, logger) #soon to be in bam_util
+        rg_str = get_readgroup_str(seread, readgroup_path_dict, logger) 
         bam_path = bwa_aln_single(uuid, bam_path, fastq_dir, seread, realn_dir, 's', reference_fasta_path, rg_str, seread_fastq_encoding, engine, logger)
         bam_path_list.append(bam_path)
     return bam_path_list

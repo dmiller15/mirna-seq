@@ -81,7 +81,6 @@ def main():
 
     top_dir = os.path.dirname(preharmonized_bam_path)
     fastq_dir = os.path.join(top_dir, 'fastq')
-    fastq_validate.fastq_guess_encoding(uuid, fastq_dir, engine, logger)
     
     fastq_validate.fastq_validate(uuid, fastq_dir, engine, logger)
 
