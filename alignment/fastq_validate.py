@@ -11,6 +11,13 @@ import fastq_util
 import df_util
 import time_util
 
+def get_total_deduplicated_percentage(fastqc_data_open, logger):
+    for line in fastqc_data_open:
+        if line.startswith('#Total Deduplicated Percentage'):
+            line_split = line.strip('\n').lstrip('#').split('\t')
+            return line_split
+    logger.debug('get_total_deduplicated_percentage() failed')
+    sys.exit(1)
 
 def fastqc_data_to_dict(data_dict, fastqc_data_path, engine, logger):
     logger.info('fastqc_data_path=%s' % fastqc_data_path)
@@ -25,6 +32,83 @@ def fastqc_data_to_dict(data_dict, fastqc_data_path, engine, logger):
                     data_dict[value_to_store] = data_value
     return data_dict
 
+def fastqc_detail_to_df(uuid, fq_path, fastqc_data_path, data_key, engine, logger):
+    logger.info('detail step: %s'  % data_key)
+    logger.info('fastqc_data_path: %s' % fastqc_data_path)
+    process_data = False
+    process_header = False
+    have_data = False
+    with open(fastqc_data_path, 'r') as fastqc_data_open:
+        for line in fastqc_data_open:
+            #logger.info('line=%s' % line)
+            if line.startswith('##FastQC'):
+                #logger.info('\tcase 1')
+                continue
+            elif process_data and not process_header and line.startswith('>>END_MODULE'):
+                #logger.info('\tcase 2')
+                break
+            elif line.startswith(data_key):
+                #logger.info('\tcase 3')
+                logger.info('fastqc_detail_to_df() found data_key: %s' % data_key)
+                process_data = True
+            elif process_data and line.startswith('>>END_MODULE'):
+                #logger.info('\tcase 4')
+                logger.info('fastqc_detail_to_df() >>END_MODULE')
+                if data_key == '>>Basic Statistics':
+                    value_list = get_total_deduplicated_percentage(fastqc_data_open, logger)
+                    row_df = pd.DataFrame([uuid, fq_path] + value_list)
+                    row_df_t = row_df.T
+                    row_df_t.columns = ['uuid', 'fastq_path'] + header_list
+                    #logger.info('9 row_df_t=%s' % row_df_t)
+                    df = df.append(row_df_t)
+                break
+            elif process_data and line.startswith('#'):
+                #logger.info('\tcase 5')
+                process_header = True
+                header_list = line.strip('#').strip().split('\t')
+                logger.info('fastqc_detail_to_df() header_list: %s' % header_list)
+            elif process_data and process_header:
+                #logger.info('\tcase 6')
+                logger.info('fastqc_detail_to_df() columns=%s' % header_list)
+                df = pd.DataFrame(columns = ['uuid', 'fastq_path'] + header_list)
+                process_header = False
+                have_data = True
+                #logger.info('2 df=%s' % df)
+                line_split = line.strip('\n').split('\t')
+                logger.info('process_header line_split=%s' % line_split)
+                row_df = pd.DataFrame([uuid, fq_path] + line_split)
+                row_df_t = row_df.T
+                row_df_t.columns = ['uuid', 'fastq_path'] + header_list
+                logger.info('1 row_df_t=%s' % row_df_t)
+                df = df.append(row_df_t)
+                #logger.info('3 df=%s' % df)
+            elif process_data and not process_header:
+                #logger.info('\tcase 7')
+                line_split = line.strip('\n').split('\t')
+                logger.info('not process_header line_split=%s' % line_split)
+                row_df = pd.DataFrame([uuid, fq_path] + line_split)
+                row_df_t = row_df.T
+                row_df_t.columns = ['uuid', 'fastq_path'] + header_list
+                logger.info('not process_header line_split=%s' % line_split)
+                logger.info('2 row_df_t=%s' % row_df_t)
+                df = df.append(row_df_t)
+                #logger.info('4 df=%s' % df)
+            elif not process_data and not process_header:
+                #logger.info('\tcase 8')
+                continue
+            else:
+                #logger.info('\tcase 9')
+                logger.debug('fastqc_detail_to_df(): should not be here')
+                sys.exit(1)
+    if have_data:
+        logger.info('complete df=%s' % df)
+        return df
+    else:
+        logger.info('no df')
+        return None
+    logger.debug('fastqc_detail_to_df(): should not reach end of function')
+    sys.exit(1)
+
 def fastqc_summary_to_dict(data_dict, fastqc_summary_path, engine, logger):
     logger.info('fastqc_summary_path=%s' % fastqc_summary_path)
     with open(fastqc_summary_path, 'r') as fastqc_summary_open:
@@ -36,10 +120,10 @@ def fastqc_summary_to_dict(data_dict, fastqc_summary_path, engine, logger):
     return data_dict
 
 def fastqc_to_db(uuid, fq_path, engine, logger):
-    data_dict = dict()
     fastq_name = os.path.basename(fq_path)
     fastq_dir = os.path.dirname(fq_path)
     fastq_base, fastq_ext = os.path.splitext(fastq_name)
+    fastq_base = fastq_base.rstrip('.fq')
     qc_report_dir = os.path.join(fastq_dir, fastq_base + '_fastqc')
     fastqc_data_path = os.path.join(qc_report_dir, 'fastqc_data.txt')
     fastqc_summary_path = os.path.join(qc_report_dir, 'summary.txt')
@@ -47,15 +131,15 @@ def fastqc_to_db(uuid, fq_path, engine, logger):
         logger.info('already completed step `fastqc db`: %s' % fq_path)
     else:
         logger.info('writing `fastqc db`: %s' % fq_path)
-        data_dict['uuid'] = [uuid]
-        data_dict['fastq_name'] = fastq_name
-        data_dict = fastqc_data_to_dict(data_dict, fastqc_data_path, engine, logger)
-        data_dict = fastqc_summary_to_dict(data_dict, fastqc_summary_path, engine, logger)
-        df = pd.DataFrame(data_dict)
-        table_name = 'fastqc_data'
+        summary_dict = dict()
+        summary_dict['uuid'] = [uuid]
+        summary_dict['fastq_name'] = fastq_name
+        summary_dict = fastqc_summary_to_dict(summary_dict, fastqc_summary_path, engine, logger)        
+        df = pd.DataFrame(summary_dict)
+        table_name = 'fastq_summary'
         unique_key_dict = {'uuid': uuid, 'fastq_name': fastq_name}
         df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
-        '''
+        
         data_key_list = ['>>Basic Statistics', '>>Per base sequence quality', '>>Per tile sequence quality',
                          '>>Per sequence quality scores', '>>Per base sequence content', '>>Per sequence GC content',
                          '>>Per base N content', '>>Sequence Length Distribution', '>>Sequence Duplication Levels',
@@ -68,7 +152,7 @@ def fastqc_to_db(uuid, fq_path, engine, logger):
             logger.info('fastqc_to_db() table_name=%s' % table_name)
             unique_key_dict = {'uuid': uuid, 'fastq_path': fq_path}
             df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
-        '''
+            
         pipe_util.create_already_step(fastq_dir, 'fastqc_db_' + fastq_base, logger)
         logger.info('completed writing `fastqc db`: %s' % fq_path)
     return
@@ -95,6 +179,7 @@ def guess_enc_db(uuid, fq_path, engine, logger):
         df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
         pipe_util.create_already_step(fastq_dir, 'fastq_encdb_' + fastq_base, logger)
         logger.info('completed writing `guess_enc_db`: %s' % fq_path)
+    return
 
 def do_fastqc(uuid, fastq_path, engine, logger):
     fastq_name = os.path.basename(fastq_path)

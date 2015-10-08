@@ -80,7 +80,7 @@ RUN pip install --user virtualenvwrapper \
 
 RUN pip install s3cmd --user
 
-ENV mirna_aligner 0.11
+ENV mirna_aligner 0.12
 
 RUN git clone https://github.com/dmiller15/mirna-seq.git
 
