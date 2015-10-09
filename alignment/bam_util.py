@@ -165,7 +165,7 @@ def bwa_aln_single(uuid, bam_path, fastq_dir, read1, realn_dir, readkey, referen
         table_name = 'time_mem_bwa_aln'
         df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
         logger.info('completed running step `bwa single aln` of: %s' % bam_path)
-        pipe_util.create_already_step(se_realn_dir, readkey + '_' + fastqbasename, logger)
+        pipe_util.create_already_step(se_realn_dir, readkey + '_sai_' + fastqbasename, logger)
 
     # BWA SAMSE Command
     if pipe_util.already_step(se_realn_dir, readkey + '_samse_' + fastqbasename, logger):
@@ -183,7 +183,7 @@ def bwa_aln_single(uuid, bam_path, fastq_dir, read1, realn_dir, readkey, referen
         table_name = 'time_mem_bwa_samse'
         df_util.save_df_to_sqlalchemy(df, unique_key_dict, table_name, engine, logger)
         logger.info('completed running step `bwa single samse` of: %s' % bam_path)
-        pipe_util.create_already_step(se_realn_dir, readkey + '_' + fastqbasename, logger)
+        pipe_util.create_already_step(se_realn_dir, readkey + '_samse_' + fastqbasename, logger)
     return outbam_path
 
 def get_fastq_encoding_from_db(fastq_name, fastq_dir, engine, logger):
