@@ -13,7 +13,7 @@ def bam_merge(uuid, preharmonize_bam_path, bam_path_list, engine, logger, be_len
     out_dir = os.path.join(realn_dir, 'merge')
     os.makedirs(out_dir, exist_ok=True)
     step_dir = out_dir
-    preharmbam = os.path.basename(preharmonized_bam_path)
+    preharmbam = os.path.basename(preharmonize_bam_path)
     preharmbam_name, preharmbam_ext = os.path.splitext(preharmbam)
     outbam_name = preharmbam_name + '_realn.bam'
     outbam_path = os.path.join(out_dir, outbam_name)
