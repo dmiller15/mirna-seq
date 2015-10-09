@@ -11,7 +11,10 @@ import picard_bam_sort
 import bam_validate
 import fastq_validate
 import pipe_util
-
+import fastq_util
+import picard_bam_merge
+import final_validate
+import bam_stats
 
 def is_dir(d):
     if os.path.isdir(d):
@@ -76,6 +79,7 @@ def main():
 
     
     bam_validate.bam_validate(uuid, preharmonized_bam_path, engine, logger)
+    bam_stats.do_samtools_flagstat(uuid, preharmonized_bam_path, reference_fasta_path, engine, logger)
     readgroup_path_dict = bam_util.write_readgroups(uuid, preharmonized_bam_path, engine, logger)    
     bam_util.bam_to_fastq(uuid, preharmonized_bam_path, engine, logger)
 
@@ -100,8 +104,9 @@ def main():
     harmonized_bam_merge_path = picard_bam_merge.bam_merge(uuid, preharmonized_bam_path, harmonized_sorted_bam_path_list, engine, logger, be_lenient)
 
     bam_validate.bam_validate(uuid, harmonized_bam_merge_path, engine, logger)
+    bam_stats.do_samtools_flagstat(uuid, harmonized_bam_merge_path, reference_fasta_path, engine, logger)
 
-    final_validate.final_validate(uuid, preharmonized_bam_path, harmonized_bam_merge_path, fastq_list, fastq_dir, engine, logger)
+    #final_validate.final_validate(uuid, preharmonized_bam_path, harmonized_bam_merge_path, fastq_list, fastq_dir, engine, logger)
 
 
 if __name__ == '__main__':
