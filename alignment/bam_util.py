@@ -40,6 +40,10 @@ def get_readgroup_str(readname, readgroup_path_dict, logger):
     read_ext = fq_split[-1]
     fq_split.remove(read_ext)
     rg_name = '_'.join(fq_split)
+    logger.info('get_readgroupstr() rg_name=%s' % rg_name)
+    if rg_name == 'default':
+        logger.info('%s has no readgroup info, so returning None' % rg_name)
+        return None
     readgroup_path = readgroup_path_dict[rg_name]
     with open(readgroup_path, 'r') as readgroup_path_open:
         readgroup_line = readgroup_path_open.readline()
@@ -171,12 +175,17 @@ def bwa_aln_single(uuid, bam_path, fastq_dir, read1, realn_dir, readkey, referen
     if pipe_util.already_step(se_realn_dir, readkey + '_samse_' + fastqbasename, logger):
         logger.info('already completed set `bwa samse` of %s:' % outbam_path)
     else:
-        samse_cmd = ['bwa', 'samse', '-n 10', reference_fasta_path, '-r' + '"' + rg_str + '"', outsai_path, f1]
+        if rg_str is None:
+            bwa_cmd = ['bwa', 'samse', '-n 10', reference_fasta_path, outsai_path, f1]
+        else:
+            samse_cmd = ['bwa', 'samse', '-n 10', reference_fasta_path, '-r' + '"' + rg_str + '"', outsai_path, f1]
         samtools_cmd = 'samtools view -Shb -o ' + outbam_path + ' -'
         shell_samse_cmd = ' '.join(samse_cmd)
         shell_cmd = shell_samse_cmd + ' | ' + samtools_cmd
+        logger.info('bwa_aln_single() shell_cmd=%s' % shell_cmd)
         samse_output = pipe_util.do_shell_command(shell_cmd, logger)
         df = time_util.store_time(uuid, shell_cmd, samse_output, logger)
+        logger.info('bwa_aln_single() df=%s' % df)
         df['bam_path'] = bam_path
         df['reference_fasta_path'] = reference_fasta_path
         unique_key_dict = {'uuid': uuid, 'bam_path': outbam_path, 'reference_fasta_path': reference_fasta_path}
