@@ -176,7 +176,7 @@ def bwa_aln_single(uuid, bam_path, fastq_dir, read1, realn_dir, readkey, referen
         logger.info('already completed set `bwa samse` of %s:' % outbam_path)
     else:
         if rg_str is None:
-            bwa_cmd = ['bwa', 'samse', '-n 10', reference_fasta_path, outsai_path, f1]
+            samse_cmd = ['bwa', 'samse', '-n 10', reference_fasta_path, outsai_path, f1]
         else:
             samse_cmd = ['bwa', 'samse', '-n 10', reference_fasta_path, '-r' + '"' + rg_str + '"', outsai_path, f1]
         samtools_cmd = 'samtools view -Shb -o ' + outbam_path + ' -'

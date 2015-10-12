@@ -8,7 +8,7 @@ import pipe_util
 
 def buildsefastqlist(fastqlist):
     sefastq_list = list()
-    fastq_re = re.compile('(^[A-Z0-9_.-]+)_(s).fq')
+    fastq_re = re.compile('(^[a-zA-Z0-9_.-]+)_(s).fq')
     for fastq in fastqlist:
         fastq_match = fastq_re.match(fastq)
         if fastq_match is None:
