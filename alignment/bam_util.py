@@ -24,7 +24,7 @@ def bam_to_fastq(uuid, bam_path, engine, logger):
         logger.info('running step `bamtofastq` of %s: ' % bam_path)
         os.makedirs(fastq_dir, exist_ok=True)
         tempfq = os.path.join(fastq_dir, 'tempfq')
-        cmd = ['bamtofastq', 'S=%s' % uuid + '.fq', 'filename=' + bam_path, 'outputdir=' + fastq_dir, 'tryoq=1', 'collate=1', 'outputperreadgroup=1', 'T=' + tempfq]
+        cmd = ['bamtofastq', 'S=%s' % uuid + '.fq', 'filename=' + bam_path, 'outputdir=' + fastq_dir, 'tryoq=1', 'collate=1', 'outputperreadgroup=1', 'T=' + tempfq, 'exclude=QCFAIL,SECONDARY,SUPPLEMENTARY']
         output = pipe_util.do_command(cmd, logger)
         df = time_util.store_time(uuid, cmd, output, logger)
         df['bam_path'] = bam_path

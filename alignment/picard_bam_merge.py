@@ -15,7 +15,7 @@ def bam_merge(uuid, preharmonize_bam_path, bam_path_list, engine, logger, be_len
     step_dir = out_dir
     preharmbam = os.path.basename(preharmonize_bam_path)
     preharmbam_name, preharmbam_ext = os.path.splitext(preharmbam)
-    outbam_name = preharmbam_name + '_realn.bam'
+    outbam_name = preharmbam_name + '_gdc_realn.bam'
     outbam_path = os.path.join(out_dir, outbam_name)
     logger.info('bam_path_list=%s' % bam_path_list)
     lenient_merge = False
