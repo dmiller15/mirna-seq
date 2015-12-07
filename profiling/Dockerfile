@@ -82,7 +82,5 @@ RUN service mysql start \
 # Delete the table files
 RUN rm *.txt *.sql
 
-ENV mirna_profiler 0.07
+ENV mirna_profiler 0.10
 WORKDIR ${HOME}
-
-CMD service mysql start && bash

@@ -192,6 +192,10 @@ def main():
             logger.info('Adapter report: %s created for BAM file: %s' % (report_path, bam_path))
     logger.info('Completed: Adapter report generation')
 
+    # Start up mysql
+    mysql_CMD = ['service', 'mysql', 'start']
+    do_command(mysql_CMD,logger)
+
     # Annotate the SAM files
     logger.info('Beginning: SAM file annotation')
     annotate_CMD = ['perl', '/home/ubuntu/bin/mirna/v0.2.7/code/annotation/annotate.pl', '-m', mirbase_db, '-u', ucsc_db, '-o', species_code, '-p', project_dir]
